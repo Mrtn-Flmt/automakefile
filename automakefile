@@ -1,0 +1,204 @@
+##
+## EPITECH PROJECT, 2021
+## automakefile
+## File description:
+## automakefile
+##
+
+#!/bin/bash
+
+if [ $# != 1 ]; then
+    echo 'more arguments'
+    exit 84
+fi
+
+if [ ! -f $1 ]; then
+    echo 'File is not there, aborting.'
+    exit 84
+fi
+
+if [ ! -s $1 ]; then
+    echo 'Empty file config'
+    exit 84
+fi
+
+find_path()
+{
+    local find="${1};"
+    local finder_len=$((${#find} + 1))
+    local word=$(cat ${2} | grep ^$find | cut -c$finder_len-)
+    if [ ${#word} == 0 ]; then
+        echo "No source_dir"
+    else
+        PROJECT_DIR=$word
+    fi
+}
+
+find_word()
+{
+    local find="${1};"
+    local finder_len=$((${#find} + 1))
+    local word=$(cat ${2} | grep ^$find | cut -c$finder_len-)
+    if [ ${#word} != 0 ]; then
+        echo $word
+    fi
+}
+
+find_source()
+{
+    local find="${1};"
+    local finder_len=$((${#find} + 1))
+    local word=$(cat ${2} | grep ^$find | cut -c$finder_len-)
+    if [ ${#word} != 0 ]; then
+        echo $word
+    fi
+}
+
+find_h()
+{
+    local find="${1}"
+    local finder_len=$((${#find} + 1))
+    local word=$(cat ${2} | grep $find | cut -c$finder_len-)
+    if [ ${#word} == 0 ]; then
+        h_is_here=0
+    else
+        h_is_here=1
+    fi
+}
+
+find_c()
+{
+    local find="${1}"
+    local finder_len=$((${#find} + 1))
+    local word=$(cat ${2} | grep $find | cut -c$finder_len-)
+    if [ ${#word} != 0 ]; then
+        c_is_here=1
+        cat ${2} | grep -e "\.c" | cut -d ";" -f1 > temp
+        IFS=$'\r\n' command eval 'XYZ=($(cat temp))'
+    fi
+}
+
+find_ext()
+{
+    find_h "\.h" $1
+    find_c "\.c" $1
+}
+
+verif_cc()
+{
+    if [ ${#CC} == 0 ]; then
+        CC="gcc"
+    fi
+}
+
+verif_exec()
+{
+    if [ ${#EXEC} == 0 ]; then
+        EXEC="a.out"
+    fi
+}
+
+get_word()
+{
+    MAIN=$(find_word "main.c" $1)
+    EXEC=$(find_word "EXEC" $1)
+    verif_exec
+    find_path "PROJECT_DIR" $1
+    CC=$(find_word "CC" $1)
+    verif_cc
+    SOURCE_DIR=$(find_word "SOURCES_DIR" $1)
+    CFLAGS=$(find_word "CFLAGS" $1)
+    HEADERS_DIR=$(find_word "HEADERS_DIR" $1)
+    LIBS_DIR=$(find_word "LIBS_DIR" $1)
+    BCK_DIR=$(find_word "BCK_DIR" $1)
+    ZIP=$(find_word "ZIP" $1)
+    ZIPFLAGS=$(find_word "ZIPFLAGS" $1)
+    UNZIP=$(find_word "UNZIP" $1)
+    UNZIPFLAGS=$(find_word "UNZIPFLAGS" $1)
+}
+
+print_header()
+{
+    echo "##" > ${PROJECT_DIR}/Makefile
+    echo "## EPITECH PROJECT, 2021" >> ${PROJECT_DIR}/Makefile
+    echo "## automakefile" >> ${PROJECT_DIR}/Makefile
+    echo "## File description:" >> ${PROJECT_DIR}/Makefile
+    echo "## automakefile" >> ${PROJECT_DIR}/Makefile
+    echo "##" >> ${PROJECT_DIR}/Makefile
+    echo "" >> ${PROJECT_DIR}/Makefile
+}
+
+print_src()
+{
+    for i in ${XYZ[@]};
+    do 
+        echo " $SOURCE_DIR/$i $(printf \\)" >> ${PROJECT_DIR}/Makefile
+    done
+}
+
+verif_h()
+{
+    if [ $h_is_here == 1 ]; then
+        echo "INC = -I./${HEADERS_DIR}" >> ${PROJECT_DIR}/Makefile
+        echo "" >> ${PROJECT_DIR}/Makefile
+    fi
+}
+
+verif_c()
+{
+    if [ $h_is_here == 1 ]; then
+        echo "$(printf '\t$(CC) -o $(EXEC) $(OBJ) $(CFLAG) $(INC)')" >> ${PROJECT_DIR}/Makefile
+    else
+        echo "$(printf '\t$(CC) -o $(EXEC) $(OBJ) $(CFLAG)')" >> ${PROJECT_DIR}/Makefile
+    fi
+}
+
+first_part()
+{
+    echo -n "SRC = " >>${PROJECT_DIR}/Makefile;
+    print_src
+    echo "" >> ${PROJECT_DIR}/Makefile
+    echo "OBJ = $(printf '$(SRC:.c=.o)')" >> ${PROJECT_DIR}/Makefile
+    echo "" >> ${PROJECT_DIR}/Makefile
+    printf "CFLAG += $CFLAGS" >> ${PROJECT_DIR}/Makefile
+    echo "" >> ${PROJECT_DIR}/Makefile
+    echo "" >> ${PROJECT_DIR}/Makefile
+    verif_h
+    echo "EXEC = $EXEC" >> ${PROJECT_DIR}/Makefile
+    echo "" >> ${PROJECT_DIR}/Makefile
+    echo "CC = $CC" >> ${PROJECT_DIR}/Makefile
+    echo "" >> ${PROJECT_DIR}/Makefile
+}
+
+second_part()
+{
+    echo "all: $(printf '$(EXEC)')" >> ${PROJECT_DIR}/Makefile
+    echo "" >> ${PROJECT_DIR}/Makefile
+    echo "$(printf '$(EXEC): $(OBJ)')" >> ${PROJECT_DIR}/Makefile
+    verif_c
+    echo "" >> ${PROJECT_DIR}/Makefile
+    echo "clean:" >> ${PROJECT_DIR}/Makefile
+    echo "$(printf '\trm -f clean $(OBJ)')" >> ${PROJECT_DIR}/Makefile
+    echo "" >> ${PROJECT_DIR}/Makefile
+    echo "fclean: clean" >> ${PROJECT_DIR}/Makefile
+    echo "$(printf '\trm -f $(EXEC)')" >> ${PROJECT_DIR}/Makefile
+    echo "" >> ${PROJECT_DIR}/Makefile
+    echo "re: clean fclean all" >> ${PROJECT_DIR}/Makefile
+}
+
+print_body()
+{
+    first_part
+    second_part
+}
+
+main()
+{
+    find_ext $1
+    get_word $1
+    print_header
+    print_body
+    rm temp
+}
+
+main $1
